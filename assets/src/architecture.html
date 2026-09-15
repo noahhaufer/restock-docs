@@ -1,0 +1,226 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>restock architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=block" rel="stylesheet">
+<style>
+  /* Tokens copied from apps/web/src/app/globals.css */
+  :root {
+    --bg: #ffffff; --surface: #f5f5f7; --elevated: #ffffff;
+    --ink: #1d1d1f; --ink-2: #6e6e73; --ink-3: #a1a1a6;
+    --line: rgba(0,0,0,.08); --line-strong: rgba(0,0,0,.16);
+    --accent: #0092cf; --mark-filter: brightness(0);
+    --shadow: 0 1px 2px rgba(0,0,0,.04), 0 1px 1px rgba(0,0,0,.03);
+  }
+  .dark {
+    --bg: #000000; --surface: #161617; --elevated: #1d1d1f;
+    --ink: #f5f5f7; --ink-2: #a1a1a6; --ink-3: #6e6e73;
+    --line: rgba(255,255,255,.1); --line-strong: rgba(255,255,255,.2);
+    --accent: #0092cf; --mark-filter: brightness(0) invert(1);
+    --shadow: 0 1px 2px rgba(0,0,0,.4);
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { background: var(--bg); }
+  body { width: 1600px; height: 1040px; position: relative; overflow: hidden;
+    font-family: Inter, -apple-system, "Helvetica Neue", sans-serif; color: var(--ink);
+    font-feature-settings: "cv11","ss01","ss03","cv02"; -webkit-font-smoothing: antialiased; }
+  .abs { position: absolute; }
+
+  header { left: 64px; top: 52px; right: 64px; display: flex; align-items: center; justify-content: space-between; }
+  .lockup { display: flex; align-items: center; gap: 13px; }
+  .lockup img { height: 34px; filter: var(--mark-filter); }
+  .lockup svg { height: 26px; width: auto; color: var(--ink); }
+  .head-r { text-align: right; }
+  .head-r b { font-size: 22px; font-weight: 600; letter-spacing: -.02em; display: block; }
+  .head-r span { font-size: 13px; color: var(--ink-2); }
+
+  .card { background: var(--elevated); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); padding: 18px 20px; }
+  .card.soft { background: var(--surface); box-shadow: none; }
+  .kicker { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+  .title { font-size: 19px; font-weight: 600; letter-spacing: -.02em; margin-top: 4px; }
+  .sub { font-size: 13px; color: var(--ink-2); margin-top: 3px; line-height: 1.4; }
+  .rows { margin-top: 12px; display: grid; gap: 7px; }
+  .row { font-size: 13.5px; color: var(--ink); display: flex; gap: 10px; align-items: baseline; }
+  .row i { font-style: normal; font-size: 11px; font-weight: 600; color: var(--ink-3); width: 12px; flex: none; font-variant-numeric: tabular-nums; }
+  .row em { font-style: normal; color: var(--ink-2); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+  .chip { font-size: 11.5px; font-weight: 500; color: var(--ink-2); border: 1px solid var(--line-strong); border-radius: 999px; padding: 3px 9px; }
+  .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11.5px; color: var(--ink-3); }
+
+  .zone { border: 1.5px dashed var(--line-strong); border-radius: 26px; }
+  .zone-label { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); background: var(--bg); padding: 0 8px; }
+
+  .accts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 14px; }
+  .acct { background: var(--surface); border-radius: 10px; padding: 9px 10px; }
+  .acct b { font-size: 12.5px; font-weight: 600; display: block; }
+  .acct span { font-size: 11.5px; color: var(--ink-2); line-height: 1.35; display: block; margin-top: 2px; }
+
+  .person { display: flex; align-items: center; gap: 12px; }
+  .dot { width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid var(--line-strong); flex: none; position: relative; }
+  .dot::after { content: ""; position: absolute; left: 50%; top: 50%; width: 8px; height: 8px; margin: -4px; border-radius: 50%; background: var(--ink-3); }
+  .person.money .dot { border-color: var(--accent); }
+  .person.money .dot::after { background: var(--accent); }
+
+  svg.edges { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
+  .e { fill: none; stroke: var(--ink-3); stroke-width: 1.5; }
+  .e.money { stroke: var(--accent); stroke-width: 2; }
+  .e.dash { stroke-dasharray: 5 5; }
+  .lbl { position: absolute; transform: translate(-50%, -50%); background: var(--bg); padding: 2px 8px; font-size: 12px; font-weight: 500; color: var(--ink-2); white-space: nowrap; border-radius: 6px; }
+  .lbl.money { color: var(--accent); }
+  .lbl.on-surface { background: var(--bg); }
+
+  footer { left: 64px; right: 64px; top: 952px; display: flex; align-items: center; gap: 14px; }
+  footer .chips { margin: 0; }
+  .legend { display: flex; gap: 22px; align-items: center; font-size: 12px; color: var(--ink-2); }
+  .legend span { display: inline-flex; align-items: center; gap: 8px; }
+  .legend i { display: inline-block; width: 26px; height: 0; border-top: 2px solid var(--accent); }
+  .legend i.plain { border-top: 1.5px solid var(--ink-3); }
+  .legend i.dash { border-top: 1.5px dashed var(--ink-3); }
+  .bottom { left: 64px; right: 64px; top: 998px; display: flex; justify-content: space-between; font-size: 12px; color: var(--ink-3); }
+</style>
+</head>
+<body>
+  <header class="abs">
+    <div class="lockup"><img src="data:image/png;base64,{{MARK}}" alt="">{{WORDMARK}}</div>
+    <div class="head-r"><b>System architecture</b><span>Solana mainnet · September 2026</span></div>
+  </header>
+
+  <!-- ============ column 1: people ============ -->
+  <div class="abs card person" style="left:64px; top:250px; width:236px;">
+    <div class="dot"></div>
+    <div><div class="title" style="margin:0;font-size:16px">Pool creators</div><div class="sub">Invite-only</div></div>
+  </div>
+  <div class="abs card person money" style="left:64px; top:562px; width:236px;">
+    <div class="dot"></div>
+    <div><div class="title" style="margin:0;font-size:16px">Traders</div><div class="sub">Swap from any venue</div></div>
+  </div>
+  <div class="abs card person money" style="left:64px; top:782px; width:236px;">
+    <div class="dot"></div>
+    <div><div class="title" style="margin:0;font-size:16px">Token holders</div><div class="sub">Paid in the stock</div></div>
+  </div>
+
+  <!-- ============ column 2 top: web app ============ -->
+  <div class="abs card" style="left:392px; top:164px; width:496px; height:236px;">
+    <div class="kicker">Web app · Vercel</div>
+    <div class="title">restock.fun</div>
+    <div class="sub">Next.js. Builds every transaction; the wallet signs it.</div>
+    <div class="rows" style="grid-template-columns:1fr 1fr; column-gap:18px;">
+      <div class="row"><i>—</i>Pools and charts</div>
+      <div class="row"><i>—</i>Create wizard</div>
+      <div class="row"><i>—</i>Trade through the pool</div>
+      <div class="row"><i>—</i>Holder claims</div>
+      <div class="row"><i>—</i>Copilot</div>
+      <div class="row"><i>—</i>Competition board</div>
+    </div>
+    <div class="chips"><span class="chip">Privy</span><span class="chip">Jupiter</span><span class="chip">Raydium SDK</span><span class="chip">SolRouter TEE</span></div>
+  </div>
+
+  <!-- ============ column 2 bottom: Solana ============ -->
+  <div class="abs zone" style="left:372px; top:506px; width:536px; height:394px;"></div>
+  <div class="abs zone-label" style="left:396px; top:498px;">Solana mainnet</div>
+
+  <div class="abs card" style="left:392px; top:534px; width:300px; height:112px;">
+    <div class="title" style="margin:0;font-size:16px">Raydium CLMM pool</div>
+    <div class="sub">Project token / tokenized stock</div>
+    <div class="sub" style="color:var(--accent);font-weight:500">1% or 2% trade fee</div>
+  </div>
+  <div class="abs card soft" style="left:708px; top:534px; width:180px; height:112px;">
+    <div class="title" style="margin:0;font-size:16px">Squads 2-of-3</div>
+    <div class="sub">Admin, upgrade authority, treasury</div>
+  </div>
+
+  <div class="abs card" style="left:392px; top:712px; width:496px; height:166px;">
+    <div style="display:flex; justify-content:space-between; align-items:baseline;">
+      <div class="title" style="margin:0;font-size:16px">ReStock program</div>
+      <div class="mono">EyQy…L412v</div>
+    </div>
+    <div class="accts">
+      <div class="acct"><b>Config</b><span>Fees, pause, authorities</span></div>
+      <div class="acct"><b>Pool</b><span>One position per pair</span></div>
+      <div class="acct"><b>Vaults</b><span>Position NFT, holder stock</span></div>
+      <div class="acct"><b>Epochs</b><span>Merkle root, claimed bitmap</span></div>
+    </div>
+  </div>
+
+  <!-- ============ column 3: off-chain ============ -->
+  <div class="abs zone" style="left:976px; top:144px; width:560px; height:756px;"></div>
+  <div class="abs zone-label" style="left:1000px; top:136px;">Off-chain services · Render</div>
+
+  <div class="abs card" style="left:1000px; top:164px; width:512px; height:236px;">
+    <div class="kicker">Web service</div>
+    <div class="title">Indexer</div>
+    <div class="sub">Turns chain activity into the data the site reads.</div>
+    <div class="rows">
+      <div class="row"><i>—</i>Decodes program events and pool swaps</div>
+      <div class="row"><i>—</i>Pool stats, prices and fee revenue <em>every minute</em></div>
+      <div class="row"><i>—</i>Holder snapshots and Merkle payout lists</div>
+      <div class="row"><i>—</i>Read API: pools, payouts, claims, leaderboard</div>
+    </div>
+    <div class="chips"><span class="chip">Helius webhooks</span><span class="chip">Helius DAS</span><span class="chip">Postgres</span></div>
+  </div>
+
+  <div class="abs card" style="left:1000px; top:660px; width:512px; height:218px;">
+    <div class="kicker">Worker · every hour</div>
+    <div class="title">Keeper</div>
+    <div class="rows" style="gap:9px">
+      <div class="row"><i>1</i>Harvest each pool's fees</div>
+      <div class="row"><i>2</i>Sell the project-token side for the stock <em>via Jupiter</em></div>
+      <div class="row"><i>3</i>Publish the epoch: Merkle root over holder shares</div>
+      <div class="row"><i>4</i>After the 1 h challenge window, pay every holder</div>
+      <div class="row"><i>5</i>Close epochs older than a week, unclaimed rolls over</div>
+    </div>
+  </div>
+
+  <!-- ============ edges ============ -->
+  <svg class="edges" width="1600" height="1040" viewBox="0 0 1600 1040">
+    <defs>
+      <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9" fill="none" stroke="var(--ink-3)" stroke-width="1.6"/></marker>
+      <marker id="am" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9" fill="none" stroke="var(--accent)" stroke-width="1.8"/></marker>
+    </defs>
+    <!-- creators -> web -->
+    <path class="e" d="M300,286 L386,286" marker-end="url(#a)"/>
+    <!-- web -> chain (signed txs) -->
+    <path class="e" d="M540,400 L540,528" marker-end="url(#a)"/>
+    <!-- indexer -> web (read API) -->
+    <path class="e" d="M1000,286 L894,286" marker-end="url(#a)"/>
+    <!-- chain -> indexer (webhooks) -->
+    <path class="e dash" d="M856,506 C 856,440 940,420 994,392" marker-end="url(#a)"/>
+    <!-- indexer -> keeper (payout lists) -->
+    <path class="e" d="M1256,400 L1256,654" marker-end="url(#a)"/>
+    <!-- keeper -> program -->
+    <path class="e" d="M1000,795 L894,795" marker-end="url(#a)"/>
+    <!-- squads -> program -->
+    <path class="e" d="M798,646 L798,706" marker-end="url(#a)"/>
+
+    <!-- money path -->
+    <path class="e money" d="M300,604 L386,604" marker-end="url(#am)"/>
+    <path class="e money" d="M540,646 L540,706" marker-end="url(#am)"/>
+    <path class="e money" d="M392,824 L306,824" marker-end="url(#am)"/>
+  </svg>
+
+  <div class="lbl" style="left:343px; top:262px;">apply · create</div>
+  <div class="lbl" style="left:540px; top:462px;">wallet-signed transactions</div>
+  <div class="lbl" style="left:947px; top:262px;">read API</div>
+  <div class="lbl" style="left:930px; top:446px;">webhooks</div>
+  <div class="lbl" style="left:1256px; top:527px;">holder snapshots</div>
+  <div class="lbl" style="left:947px; top:770px;">hourly txs</div>
+  <div class="lbl" style="left:343px; top:580px;" class="lbl money"><span style="color:var(--accent)">swaps</span></div>
+  <div class="lbl" style="left:620px; top:676px; background:transparent;"><span style="color:var(--accent)">fees collected by CPI</span></div>
+  <div class="lbl" style="left:830px; top:676px; background:transparent;">admin</div>
+  <div class="lbl" style="left:343px; top:848px;"><span style="color:var(--accent)">stock, hourly</span></div>
+
+  <footer class="abs">
+    <div class="legend">
+      <span><i></i>Fee path</span>
+      <span><i class="plain"></i>Data and control</span>
+      <span><i class="dash"></i>Chain events</span>
+    </div>
+    <div style="flex:1"></div>
+    <span class="kicker">Also relies on</span>
+    <div class="chips"><span class="chip">Helius RPC</span><span class="chip">Jupiter prices</span><span class="chip">Birdeye</span><span class="chip">GeckoTerminal</span></div>
+  </footer>
+  <div class="abs bottom"><span>restock.fun</span><span>Pool fees paid in the stock</span></div>
+</body>
+</html>
