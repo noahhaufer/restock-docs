@@ -88,11 +88,16 @@ flowchart LR
   V -->|hourly epoch| E[Token holders' wallets]
 ```
 
-Each harvest splits both sides of the collected fees identically:
+Before any fee reaches the position, the venue keeps its own cut of every trade fee: Raydium 16% (12% protocol,
+4% fund, on both the 1% and 2% tiers) and Meteora 20%. The rest, 84% or 80%, is credited to the pool's liquidity
+providers, shared pro-rata if anyone else also provides liquidity in the same pool. On a 1% pool with ReStock as
+the only liquidity, holders receive 0.798% of every trade on Raydium and 0.76% on Meteora.
+
+Each harvest splits both sides of what the position collected identically:
 
 | Share | Amount |
 |---|---|
-| Protocol | `protocol_fee_bps` of the gross, 500 bps by default, at most 1,000 bps (enforced in the program) |
+| Protocol | 5% of the gross (`protocol_fee_bps` = 500) |
 | Referrer | 20% of the protocol share, only for pools created through a referral link |
 | Holders | Everything else |
 
@@ -131,7 +136,8 @@ Every hour, for every pool:
 | | |
 |---|---|
 | Pool creation | 0.05 SOL (capped at 1 SOL in the program) |
-| Protocol share of pool fees | 5% default, adjustable per pool by the admin up to 10% |
+| Venue cut of each trade fee | Raydium 16%, Meteora 20%, before liquidity providers are credited |
+| Protocol share of pool fees | 5% |
 | Referrals | 20% of the protocol share from pools created through the referrer's link |
 | Swaps through the site's Jupiter dialog | 0.5% site fee on top of Jupiter's |
 | Trades through the site's pool trade dialog | No site fee; the pool's trade fee applies as normal |

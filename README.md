@@ -44,7 +44,8 @@ themselves are closed source; everything they do on-chain can be checked indepen
 | AMMs | Raydium CLMM or Meteora DAMM v2, decided by the stock; 1% and 2% fees only |
 | Stock issuers | xStocks (Backed), Ondo Global Markets, Backpack Securities, PreStocks |
 | Payout cadence | Hourly, after a one-hour challenge window |
-| Protocol share | 5% of pool fees by default, capped at 10% in the program |
+| Venue cut of each trade fee | Raydium 16% (12% protocol, 4% fund), Meteora 20%, kept by the venue before LPs are credited |
+| Protocol share | 5% of the pool fees ReStock's position earns; holders get the other 95% |
 
 ## What this is not
 
