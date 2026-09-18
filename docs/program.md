@@ -10,13 +10,14 @@ Program ID: `EyQygGKAxe9Py1MWfGM2KLPQ7FCQZ3RwncxSDiTL412v` (Solana mainnet). Bui
 |---|---|---|
 | `ProtocolConfig` | `["config"]` | Admin, treasury, indexer authority, default protocol fee, creation fee, pause flag, pool count, protocol lookup table |
 | `QuoteMint` | `["quote", mint]` | Allowlist entry for one stock mint |
-| `Pool` | `["pool", project_mint, quote_mint, creator]` | One position on one Raydium pool, plus all its fee accounting. A wallet has at most one position per pair. |
+| `Pool` | `["pool", project_mint, quote_mint, creator]` (Raydium) or `["pool", project_mint, quote_mint, creator, "meteora"]` (Meteora) | One position on one venue pool, plus all its fee accounting. A wallet has at most one position per pair on each venue. |
 | Lock vault | `["lock", pool]` | Owner of a **locked** position's NFT |
 | Creator vault | `["cvault", pool]` | Owner of an **unlocked** position's NFT |
 | Fee authority | `["fees", pool]` | Signs payouts. Its associated token account for the stock is the pool's **holder vault**. |
 | `Epoch` | `["epoch", pool, index]` | One hourly payout: Merkle root, total, claimed amount, claim times, cancelled flag, claimed bitmap |
 
-`Pool` records, among others: the Raydium pool, the position NFT mint, lock mode, state (`Prepared`, `Active`,
+`Pool` records, among others: the venue pool (a Raydium `pool_state` or a Meteora cp-amm pool; the venue is read
+from that account's owner), the position NFT mint, lock mode, state (`Prepared`, `Active`,
 `Withdrawn`), minimum holder balance, holder cap, protocol fee, creator, operator, referrer, lifetime harvested,
 protocol, distributed and reserved amounts, the epoch count and the last epoch time.
 
@@ -42,6 +43,9 @@ protocol, distributed and reserved amounts, the epoch count and the last epoch t
 | `create_pool_execute` | Multisig | Multisig flow, step 2: creates the Raydium pool and position funded from the multisig |
 | `harvest` | Any signer | Collects the position's fees and splits them (see below) |
 | `withdraw_position` | Creator, unlocked pools only | Moves the position NFT out of the creator vault; fails with `PositionLocked` otherwise |
+| `create_pool_meteora` | Creator | The Meteora DAMM v2 twin of `create_pool`: creation fee, cp-amm pool if new (fees collected in the stock only, flat 1% or 2% base fee), position owned by the vault, pool accounts. Refuses an existing cp-amm pool whose fee collection mode or fee schedule would stop holders being paid in the stock. |
+| `harvest_meteora` | Any signer | Claims the position's fees through cp-amm's `claim_position_fee`; the split is identical to `harvest` |
+| `withdraw_position_meteora` | Creator, unlocked pools only | Harvests, then moves the position NFT out of the creator vault |
 
 ### Payouts
 
@@ -53,9 +57,9 @@ protocol, distributed and reserved amounts, the epoch count and the last epoch t
 
 ## Harvest
 
-Fees are collected with Raydium's `decrease_liquidity_v2` at liquidity 0, the only way Raydium CLMM exposes fee
-collection. The program measures what arrived as the balance change across that call, so tokens sent to the vault
-beforehand are never counted as fees.
+On Raydium, fees are collected with `decrease_liquidity_v2` at liquidity 0, the only way Raydium CLMM exposes fee
+collection. On Meteora, they are collected with cp-amm's `claim_position_fee`. Either way the program measures what
+arrived as the balance change across that call, so tokens sent to the vault beforehand are never counted as fees.
 
 For each side of the pair, with `gross` the collected amount:
 
@@ -67,7 +71,8 @@ holders   = gross − protocol
 ```
 
 The stock side of `holders` stays in the holder vault. The project-token side goes to the indexer authority's
-token account, to be converted into the stock off-chain and deposited back into the holder vault. All fee math is
+token account, to be converted into the stock off-chain and deposited back into the holder vault. On a Meteora pool
+that collects fees in the stock only, the project-token side is always zero. All fee math is
 128-bit and checked.
 
 ## Payout Merkle tree
@@ -94,8 +99,9 @@ and are not lost to log truncation.
 
 ## Invariants
 
-- The only Raydium call a vault PDA ever signs is the fee collect, with liquidity hardcoded to 0. Liquidity cannot
-  leave a locked position through this program, and no instruction transfers or closes the lock vault.
+- The only venue calls a vault PDA ever signs are fee collects: Raydium's with liquidity hardcoded to 0, and
+  cp-amm's `claim_position_fee`. Liquidity cannot leave a locked position through this program, and no
+  instruction transfers or closes the lock vault.
 - The fee authority only ever transfers to the treasury, the referrer, the indexer authority (project-token side)
   and holders' associated token accounts.
 - An epoch can reserve no more than the vault's unreserved balance, and epochs are at least an hour apart, so a

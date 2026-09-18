@@ -14,16 +14,19 @@ off-chain pieces build transactions, index the chain, and run the hourly schedul
 
 ### ReStock program
 
-An Anchor program that owns every ReStock position and its fee accounting. It calls Raydium's CLMM program to
-create pools, open positions and collect fees. Full reference: [Program reference](program.md).
+An Anchor program that owns every ReStock position and its fee accounting. It calls Raydium's CLMM program or
+Meteora's DAMM v2 (cp-amm) program to create pools, open positions and collect fees. Full reference:
+[Program reference](program.md).
 
-### Raydium CLMM
+### Raydium CLMM and Meteora DAMM v2
 
-The pools are ordinary Raydium CLMM pools, so they trade on Raydium and through any aggregator that routes to
-them. ReStock only restricts which fee tiers a ReStock position may use: 1% or 2%.
+The pools are ordinary Raydium CLMM or Meteora DAMM v2 pools, so they trade on those venues and through any
+aggregator that routes to them. ReStock only restricts the trade fee a ReStock pool may use: 1% or 2%.
 
-Stock tokens are Token-2022 mints with issuer-controlled extensions. Raydium supports them through its own
-per-mint allowlist, which the program passes through on pool creation.
+Stock tokens are Token-2022 mints with issuer-controlled extensions. Each venue supports them through its own
+per-mint whitelist (Raydium's `SupportMintAssociated`, Meteora's `TokenBadge`), which the program passes through on
+pool creation. The whitelists barely overlap, so the stock decides the venue: see
+[How it works](how-it-works.md#raydium-or-meteora).
 
 ### Squads multisig
 
@@ -40,7 +43,7 @@ A Next.js app. It builds transactions; the user's wallet signs them. It never ho
 - **Wallets** connect through Privy.
 - **Pool creation** runs a wizard that prices the pair (Jupiter cross-checked against on-chain pools), compiles the
   transaction against the protocol's address lookup table, and hands it to the wallet.
-- **Trading** goes straight through the pool's Raydium CLMM pool, using Raydium's SDK server-side to quote and build
+- **Trading** on a Raydium pool goes straight through its CLMM pool, using Raydium's SDK server-side to quote and build
   the swap. Aggregators often do not route to young pools yet, and a swap routed through other pools pays nothing to
   this pool's holders.
 - **Getting the stock** uses a Jupiter swap dialog.
@@ -54,7 +57,7 @@ Data comes from the indexer's read API.
 
 Turns chain activity into the data the site reads, stored in Postgres.
 
-- Receives Helius webhooks for the program and for every ReStock pool's Raydium account, decodes program events
+- Receives Helius webhooks for the program and for every ReStock pool's venue account, decodes program events
   and swaps, and reconciles against the chain every hour.
 - Refreshes pool stats, prices and fee revenue every minute.
 - Snapshots token holders (Helius DAS) and builds each epoch's Merkle tree, storing every leaf and proof so the
@@ -87,5 +90,5 @@ claim needs its Merkle proof, which the indexer serves, so payouts and new epoch
 ## Inherent asset risk
 
 Stock tokens carry issuer-controlled extensions (permanent delegate, pausable, transfer hook). The issuer can freeze
-or claw back tokens in any account, including ReStock's vaults and Raydium's. This is a property of the stock
+or claw back tokens in any account, including ReStock's vaults and the venues'. This is a property of the stock
 tokens, not something ReStock can change, and is disclosed in the [Terms](https://restock.fun/terms).

@@ -10,8 +10,9 @@
 
 ---
 
-ReStock opens a Raydium concentrated-liquidity pool for an existing Solana token, quoted against a tokenized
-stock such as NVDAx or SPYx. Every swap in that pool pays a 1% or 2% trade fee. Every hour, the fees are
+ReStock opens a Raydium or Meteora pool for an existing Solana token, quoted against a tokenized stock from
+xStocks, Ondo, Backpack or PreStocks (NVDAx, TSLAon, GRND, OPENAI, …). Every swap in that pool pays a 1% or 2%
+trade fee. Every hour, the fees are
 harvested, converted entirely into the stock, and paid out to the token's holders straight into their wallets.
 
 This repository holds the public documentation and architecture for ReStock. The program and services
@@ -27,7 +28,7 @@ themselves are closed source; everything they do on-chain can be checked indepen
 
 | | |
 |---|---|
-| [How it works](docs/how-it-works.md) | Pool lifecycle, lock modes, fees, hourly payouts |
+| [How it works](docs/how-it-works.md) | Stocks, Raydium vs Meteora, pool lifecycle, lock modes, fees, hourly payouts |
 | [Architecture](docs/architecture.md) | Each component, what it trusts, and which keys it holds |
 | [Program reference](docs/program.md) | Accounts, instructions, events, invariants, the Merkle leaf format |
 | [Verify it yourself](docs/verify.md) | Mainnet addresses and how to check pools, harvests and payouts on-chain |
@@ -40,7 +41,8 @@ themselves are closed source; everything they do on-chain can be checked indepen
 | Network | Solana mainnet |
 | Program | [`EyQygGKAxe9Py1MWfGM2KLPQ7FCQZ3RwncxSDiTL412v`](https://solscan.io/account/EyQygGKAxe9Py1MWfGM2KLPQ7FCQZ3RwncxSDiTL412v) |
 | Upgrade authority and admin | Squads multisig vault [`7upasAXvUZHyCkXQC4CQoPZGVidbGCdGp9zX8svyoATq`](https://solscan.io/account/7upasAXvUZHyCkXQC4CQoPZGVidbGCdGp9zX8svyoATq) |
-| AMM | Raydium CLMM, 1% and 2% fee tiers only |
+| AMMs | Raydium CLMM or Meteora DAMM v2, decided by the stock; 1% and 2% fees only |
+| Stock issuers | xStocks (Backed), Ondo Global Markets, Backpack Securities, PreStocks |
 | Payout cadence | Hourly, after a one-hour challenge window |
 | Protocol share | 5% of pool fees by default, capped at 10% in the program |
 
